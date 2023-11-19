@@ -405,8 +405,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   dithering:
     material: {fileID: 2100000, guid: 6714e3037a079eb48934c8896695bbae, type: 2}
-    pixelDensity: 384
-    colors: 16
+    pixelDensity: 480
+    colors: 32
   useInSceneView: 1
 --- !u!1001 &1170898290
 PrefabInstance:
