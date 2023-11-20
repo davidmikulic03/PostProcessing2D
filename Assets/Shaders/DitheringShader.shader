@@ -3,6 +3,12 @@ Shader "Unlit/NewUnlitShader"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
+        _PixelDensity ("Screen Width (Pixels)", Integer) = 1
+        _NumColors ("Bit depth", Integer) = 16
+        _Spread ("Dithering Spread", Range(0.0, 1.0)) = 0.5
+        _SharpeningSize("Sharpening Size", range(0.0, 0.0001)) = 0.00005
+        _Inten("Inten", range(0.5, 4)) = 2
+        
     }
     SubShader
     {
@@ -19,8 +25,7 @@ Shader "Unlit/NewUnlitShader"
 
             #include "UnityCG.cginc"
 
-            float _Resolution;
-            float _NumColors;
+            uint _NumColors;
 
             static const int bayer2[] = {
                 0, 2,
@@ -42,9 +47,6 @@ Shader "Unlit/NewUnlitShader"
                 {15, 47, 7, 39, 13, 45, 5, 37,     },
                 {63, 31, 55, 23, 61, 29, 53, 21    },
             };
-            float4 Snap(float4 input){
-                return (uint4)(input * _NumColors) / _NumColors;
-            }
 
             struct appdata
             {
@@ -60,8 +62,13 @@ Shader "Unlit/NewUnlitShader"
 
             sampler2D _MainTex;
             float4 _MainTex_ST;
+            
             int _PixelDensity;
             float2 _AspectRatioMultiplier;
+            float _Spread;
+
+            float _SharpeningSize;
+			float _Inten;
 
             v2f vert (appdata v)
             {
@@ -76,13 +83,21 @@ Shader "Unlit/NewUnlitShader"
                float2 pixelScaling = _PixelDensity * _AspectRatioMultiplier;
                i.uv = round(i.uv * pixelScaling)/ pixelScaling;
                fixed4 newTex = tex2D(_MainTex, i.uv);
+               newTex -= tex2D(_MainTex, i.uv + _SharpeningSize) * 7.0 * _Inten;
+               newTex += tex2D(_MainTex, i.uv - _SharpeningSize) * 7.0 * _Inten;
+
+
                float x = pixelScaling.x * i.uv.x;
                float y = pixelScaling.y * i.uv.y;
-               fixed threshold = (bayer8[x % 8][y % 8]) / (_NumColors * 8 * 8);
-               fixed4 output = newTex + threshold;
-
-
-               return Snap(output);
+               fixed threshold = (bayer8[x % 8][y % 8]) / ((float)_NumColors * 8 * 8);
+               fixed4 dither = newTex + threshold;
+               fixed4 snappedNormal = (uint4)(newTex * _NumColors) / (float)_NumColors;
+               fixed4 snappedDither = (uint4)(dither * _NumColors) / (float)_NumColors;
+               float colorMag = length(newTex.xyz);
+               float snapMag = length(snappedDither.xyz);
+               if(abs((colorMag - snapMag) * _NumColors) < _Spread) 
+                    return snappedDither;
+               return snappedNormal;
             }
             ENDCG
         }

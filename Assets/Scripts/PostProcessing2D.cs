@@ -1,10 +1,10 @@
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 
-[ExecuteAlways, ImageEffectAllowedInSceneView]
+[ExecuteAlways, ImageEffectAllowedInSceneView, RequireComponent(typeof(Camera))]
 public class PostProcessing2D : MonoBehaviour
 {
-    [SerializeField] Dithering dithering;
+    [SerializeField] Material material;
     [SerializeField] bool useInSceneView;
 
     private RenderTexture target;
@@ -18,10 +18,8 @@ public class PostProcessing2D : MonoBehaviour
                 aspectRatioData = new Vector2((float)Screen.width / Screen.height, 1);
             else
                 aspectRatioData = new Vector2(1, (float)Screen.height / Screen.width);
-            dithering.material.SetVector("_AspectRatioMultiplier", aspectRatioData);
-            dithering.material.SetInt("_PixelDensity", dithering.pixelDensity);
-            dithering.material.SetInt("_NumColors", dithering.colors);
-            Graphics.Blit(source, destination, dithering.material);
+            material.SetVector("_AspectRatioMultiplier", aspectRatioData);
+            Graphics.Blit(source, destination, material);
         }
         else
             Graphics.Blit(source, destination);
