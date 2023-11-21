@@ -61,7 +61,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints:
     - _NumColors: 8
-    - _PixelDensity: 640
+    - _PixelDensity: 720
     m_Floats:
     - _BumpScale: 1
     - _Cutoff: 0.5
@@ -70,12 +70,12 @@ Material:
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
-    - _Inten: 2.41
+    - _Inten: 2.48
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
-    - _SharpeningSize: 0.0000161
+    - _SharpeningSize: 0.000029
     - _SharpeningSizeMax: 0.0008
     - _SharpeningSizeMin: 0.000032
     - _SmoothnessTextureChannel: 0
