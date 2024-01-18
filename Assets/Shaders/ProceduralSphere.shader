@@ -3,7 +3,6 @@ Shader "ProceduralSphere"
     Properties
     {
         _Albedo("Albedo", 2D) = "white" {}
-        _Normal("Normal", 2D) = "blue" {}
         _DiffuseColor ("Diffuse", Color) = (1, 1, 1, 1)
         _Shininess ("Shininess", Range(0, 25)) = 5.0
         _Specular ("Specular", Range(0, 1)) = 0.5
@@ -38,9 +37,6 @@ Shader "ProceduralSphere"
             sampler2D _Albedo;
             float4 _Albedo_ST;
 
-            sampler2D _Normal;
-            float4 _Normal_ST;
-
             float4 _DiffuseColor;
 
             float _Shininess;
@@ -49,10 +45,14 @@ Shader "ProceduralSphere"
             v2f vert (appdata v)
             {
                 v2f o;
-                o.vertex = UnityObjectToClipPos(v.vertex);
-                o.posWorld = mul(unity_ObjectToWorld, v.vertex);
-                o.uv = v.uv;
                 
+                v.vertex.xyz = mul(unity_CameraToWorld, v.vertex.xyz);
+                
+                o.posWorld.xyz = mul(unity_ObjectToWorld, v.vertex.xyz);
+                o.vertex = UnityObjectToClipPos(v.vertex);
+                
+                o.vertex = floor(o.vertex * 64) / 64;
+                o.uv = v.uv;
                 return o;
             }
 
@@ -70,22 +70,30 @@ Shader "ProceduralSphere"
                     alpha = 0;
                     discard;
                 }
-                //return sqrt(1 - len * len);
-                float height = sqrt(1 - len * len);
+                
+                half height = sqrt(1 - len * len);
                 normal += float3(0,alpha * height, 0);
-                normal = normalize(normal);
                 normal = mul(float3x3(1,0,0,0,0,1,0,-1,0), normal);
-                normal = mul(unity_ObjectToWorld, normal);
-                normal = normal.xyz;
-
-                float lambertian = max(dot(normal, _WorldSpaceLightPos0.xyz), 0);
-
+                normal = mul(unity_CameraToWorld, normal);
+                normal = normalize(normal);
                 
-                float3 viewDir = -normalize(i.posWorld - _WorldSpaceCameraPos);
+                half lambertian = max(dot(normal, _WorldSpaceLightPos0.xyz), 0);
 
-                //float2 newUV = (2 * i.uv - 1) - 0.5 * (2 * i.uv - 1) * height;
+                half3 viewDir = -normalize(i.posWorld - _WorldSpaceCameraPos);
+                half3 camToObj = normalize(mul(unity_WorldToObject, float4(0,0,0,1)) - _WorldSpaceCameraPos);
                 
-                float4 albedo = _DiffuseColor;
+                float worldScale = length(float3(unity_ObjectToWorld[0].x, unity_ObjectToWorld[1].x, unity_ObjectToWorld[2].x));
+
+                i.posWorld.xyz += 0.5 * worldScale * height * viewDir;
+
+
+                float2 newUV = (0.5 + (2 * i.uv - 1) / (height + 1));
+                newUV = TRANSFORM_TEX(newUV, _Albedo);
+                //newUV -= 0.5 * camToObj;
+                
+                //return float4(camToObj, 1);
+                
+                float4 albedo = _DiffuseColor * tex2D(_Albedo, newUV);
                 float4 diffuse = _LightColor0 * albedo * lambertian;
                 diffuse.rgb += albedo * ShadeSH9(half4(normal,1));
 
@@ -95,9 +103,8 @@ Shader "ProceduralSphere"
                 if (_Shininess > 0)
                     shininess = _Shininess * _Shininess;
                 
-                
                 float4 specular = _Specular * _LightColor0 * pow(max(dot(halfway, normal), 0), shininess);
-
+                
                 return diffuse + specular;
                 
                 return float4(viewDir, 1);

@@ -1,4 +1,4 @@
-Shader "Unlit/NewUnlitShader"
+Shader "Post Processing/PS1"
 {
     Properties
     {
