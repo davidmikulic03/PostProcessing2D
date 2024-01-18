@@ -70,7 +70,7 @@ Shader "AffineTextureMapping"
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 o.posWorld = mul(unity_ObjectToWorld, v.vertex);
                 
-                o.vertex.xyzw = floor(o.vertex.xyzw * 32.0) / (32.0f);
+                o.vertex.xyzw = floor(o.vertex.xyzw * 64.0) / (64.0f);
 
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 if(_Affine == 1)
@@ -89,6 +89,7 @@ Shader "AffineTextureMapping"
 
             fixed4 frag (v2f i) : SV_Target
             {
+                //return float4(_WorldSpaceLightPos0.xyz, 0);
                 fixed4 col = 0;
                 if(_Affine == 1)
                     col = tex2D(_MainTex, i.uv / i.vertex.w);
@@ -107,7 +108,7 @@ Shader "AffineTextureMapping"
                     reflection = _Specular * i.spec * max(0, pow(r, 1 / _Roughness));
                 }
                 
-                col += reflection;
+                //col += reflection;
 
                 UNITY_APPLY_FOG(i.fogCoord, col);
                 return col;
