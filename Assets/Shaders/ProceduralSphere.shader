@@ -3,6 +3,7 @@ Shader "ProceduralSphere"
     Properties
     {
         _Albedo("Albedo", 2D) = "white" {}
+        [MaterialToggle] _IsTextured("Is Sphere Textured?", Float) = 1
         _DiffuseColor ("Diffuse", Color) = (1, 1, 1, 1)
         _Shininess ("Shininess", Range(0, 25)) = 5.0
         _Specular ("Specular", Range(0, 1)) = 0.5
@@ -41,6 +42,8 @@ Shader "ProceduralSphere"
 
             float _Shininess;
             float _Specular;
+
+            uniform float _IsTextured;
             
             v2f vert (appdata v)
             {
@@ -51,7 +54,7 @@ Shader "ProceduralSphere"
                 o.posWorld.xyz = mul(unity_ObjectToWorld, v.vertex.xyz);
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 
-                o.vertex = floor(o.vertex * 64) / 64;
+                //o.vertex = floor(o.vertex * 64) / 64;
                 o.uv = v.uv;
                 return o;
             }
@@ -80,22 +83,31 @@ Shader "ProceduralSphere"
                 half lambertian = max(dot(normal, _WorldSpaceLightPos0.xyz), 0);
 
                 half3 viewDir = -normalize(i.posWorld - _WorldSpaceCameraPos);
-                half3 camToObj = normalize(mul(unity_WorldToObject, float4(0,0,0,1)) - _WorldSpaceCameraPos);
-                
-                float worldScale = length(float3(unity_ObjectToWorld[0].x, unity_ObjectToWorld[1].x, unity_ObjectToWorld[2].x));
 
-                i.posWorld.xyz += 0.5 * worldScale * height * viewDir;
-
-
-                float2 newUV = (0.5 + (2 * i.uv - 1) / (height + 1));
-                newUV = TRANSFORM_TEX(newUV, _Albedo);
-                //newUV -= 0.5 * camToObj;
+                float4 albedo = _DiffuseColor;
                 
-                //return float4(camToObj, 1);
+                if(_IsTextured == 1)
+                {
+                    //half3 camToObj = normalize(mul(unity_WorldToObject, float4(0,0,0,1)) - _WorldSpaceCameraPos.xyz);
+                    half2 rot = atan2(viewDir, cross(viewDir, float3(0, 1, 0)));
+                    //return float4(rot, 0, 1);
+                    
+                    float worldScale = length(float3(unity_ObjectToWorld[0].x, unity_ObjectToWorld[1].x, unity_ObjectToWorld[2].x));
+    
+                    i.posWorld.xyz += 0.5 * worldScale * height * viewDir;
+    
+                    float2 newUV = (0.5 + (2 * i.uv - 1) / (height + 1));
+                    newUV += worldScale * rot / UNITY_TWO_PI;
+                    newUV = TRANSFORM_TEX(newUV, _Albedo);
+                    
+                    albedo *= tex2D(_Albedo, newUV);
+                }
                 
-                float4 albedo = _DiffuseColor * tex2D(_Albedo, newUV);
                 float4 diffuse = _LightColor0 * albedo * lambertian;
                 diffuse.rgb += albedo * ShadeSH9(half4(normal,1));
+
+                if(_Specular == 0)
+                    return diffuse;
 
                 float3 halfway = normalize(viewDir + _WorldSpaceLightPos0.xyz);
 
