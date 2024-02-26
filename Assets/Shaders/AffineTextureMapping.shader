@@ -70,7 +70,7 @@ Shader "AffineTextureMapping"
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 o.posWorld = mul(unity_ObjectToWorld, v.vertex);
                 
-                o.vertex.xyzw = floor(o.vertex.xyzw * 64.0) / (64.0f);
+                o.vertex.xyz = floor(o.vertex.xyz * 64.0) / (64.0f);
 
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 if(_Affine == 1)

@@ -54,7 +54,7 @@ Shader "ProceduralSphere"
                 o.posWorld.xyz = mul(unity_ObjectToWorld, v.vertex.xyz);
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 
-                //o.vertex = floor(o.vertex * 64) / 64;
+                //o.vertex.xyz = floor(o.vertex.xyz * 64) / 64;
                 o.uv = v.uv;
                 return o;
             }

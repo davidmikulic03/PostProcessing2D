@@ -1,0 +1,131 @@
+#pragma kernel CSMain
+
+RWTexture2D<float4> Result;
+RWTexture2D<float4> CleanRender;
+
+float4x4 DeltaTransform;
+
+float FOV;
+float AspectRatio;
+float Time;
+float RefreshProbability;
+
+int ResolutionX;
+int ResolutionY;
+
+uint rngState = 1;
+
+float RandomValue(inout uint rngState)
+{
+    rngState = rngState * 747796405 + 2891336453;
+    uint result = ((rngState >> ((rngState >> 28) + 4)) ^ rngState) * 277803737;
+    result = (result >> 22) ^ result;
+    return result / 4294967295.0;
+}
+
+float2 rotateUV(uint2 id)
+{
+    float2 uv = (id + 0.5f) / float2(ResolutionX, ResolutionY) - 0.5f;
+
+    float2 uvW = float2(tan(FOV * uv.x * AspectRatio), tan(FOV * uv.y));
+    
+    float3 position = float3(uvW.x, 0, uvW.y);
+    position = mul(DeltaTransform, position);
+    
+    return position.xz;
+}
+uint2 RotatePixel(uint2 id)
+{
+    float2 position = rotateUV(id);
+    
+    float2 floatID = ((float2(atan(position.x) / (AspectRatio * FOV), atan(position.y) / FOV) + 0.5f) * float2(ResolutionX, ResolutionY) - 0.5f);
+    
+    return min(max(floatID, 0), float2(ResolutionX, ResolutionY));
+}
+
+
+float3 Displacement(uint2 fromID, uint2 toID) {
+    return Result[fromID].xyz - Result[toID].xyz;
+}
+
+void Spread(uint2 id, float maxDist) {
+    uint2 offset = uint2(1, 0);
+    if ((id + offset).x < ResolutionX && (id + offset).y < ResolutionY)
+    {
+        float4 outputColor = Result[id + offset];
+        float3 disp = Displacement(id, id + offset);
+        if(disp.r < maxDist)
+            outputColor.r = Result[id].r;
+        if(disp.g < maxDist)
+            outputColor.g = Result[id].g;
+        if(disp.b < maxDist)
+            outputColor.b = Result[id].b;
+        Result[id + offset] = outputColor;
+    }
+
+    offset = uint2(0, 1);
+    if ((id + offset).x < ResolutionX && (id + offset).y < ResolutionY)
+    {
+        float4 outputColor = Result[id + offset];
+        float3 disp = Displacement(id, id + offset);
+        if(disp.r < maxDist)
+            outputColor.r = Result[id].r;
+        if(disp.g < maxDist)
+            outputColor.g = Result[id].g;
+        if(disp.b < maxDist)
+            outputColor.b = Result[id].b;
+        Result[id + offset] = outputColor;
+    }
+
+    offset = uint2(-1, 0);
+    if ((id + offset).x < ResolutionX && (id + offset).y < ResolutionY)
+    {
+        float4 outputColor = Result[id + offset];
+        float3 disp = Displacement(id, id + offset);
+        if(disp.r < maxDist)
+            outputColor.r = Result[id].r;
+        if(disp.g < maxDist)
+            outputColor.g = Result[id].g;
+        if(disp.b < maxDist)
+            outputColor.b = Result[id].b;
+        Result[id + offset] = outputColor;
+    }
+
+    offset = uint2(0, -1);
+    if ((id + offset).x < ResolutionX && (id + offset).y < ResolutionY)
+    {
+        float4 outputColor = Result[id + offset];
+        float3 disp = Displacement(id, id + offset);
+        if(disp.r < maxDist)
+            outputColor.r = Result[id].r;
+        if(disp.g < maxDist)
+            outputColor.g = Result[id].g;
+        if(disp.b < maxDist)
+            outputColor.b = Result[id].b;
+        Result[id + offset] = outputColor;
+    }
+}
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID) {
+
+    //Result[id.xy] = float4(rotateUV(id.xy), 0, 0);
+    //return;
+    
+    uint2 newID = RotatePixel(id.xy);
+    float4 lastCol = Result[newID];
+    float4 cleanCol = CleanRender[id.xy];
+    
+    float maxDist = 0.1f;
+    
+    float4 newCol = lastCol;
+    if(abs(lastCol.r - cleanCol.r) > maxDist)
+        newCol.r = cleanCol.r;
+    if(abs(lastCol.g - cleanCol.g) > maxDist)
+        newCol.g = cleanCol.g;
+    if(abs(lastCol.b - cleanCol.b) > maxDist)
+        newCol.b = cleanCol.b;
+    Result[id.xy] = newCol;
+
+    //Spread(newID, 0.25f);
+}

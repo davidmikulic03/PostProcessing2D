@@ -444,7 +444,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   material: {fileID: 2100000, guid: 6714e3037a079eb48934c8896695bbae, type: 2}
-  useInSceneView: 0
+  useInSceneView: 1
 --- !u!1 &1045169272
 GameObject:
   m_ObjectHideFlags: 0
