@@ -1,0 +1,34 @@
+{
+    "name": "Camera",
+    "maps": [
+        {
+            "name": "Camera",
+            "id": "1ac2c452-924d-45cb-aa6e-ba81b1cbe01c",
+            "actions": [
+                {
+                    "name": "Pan",
+                    "type": "Value",
+                    "id": "ffecc5f0-13a6-4e23-8a8a-189f9b03fce1",
+                    "expectedControlType": "Delta",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "3973a449-247e-4adb-959a-00182f4aaa7a",
+                    "path": "<Mouse>/delta",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Pan",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
