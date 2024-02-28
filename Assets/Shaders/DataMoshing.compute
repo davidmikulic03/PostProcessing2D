@@ -125,9 +125,9 @@ float3 PreCompression(in uint2 coord, in RWTexture2D<float4> sampleTex) {
 float2 idToUV(uint2 id) {
     return (float2)(id) / float2(ResolutionX, ResolutionY);
 }
-float3 Quantize(in uint cullLimit, in float3 dct) {
+float3 Quantize(in float cullLimit, in float3 dct) {
     
-    return round(dct / cullLimit) * cullLimit;
+    return round(dct * cullLimit) / cullLimit;
 }
 
 float3 DCT8x8(in uint2 id, in RWTexture2D<float4> sampleTex) {
@@ -135,7 +135,7 @@ float3 DCT8x8(in uint2 id, in RWTexture2D<float4> sampleTex) {
     const float2 uv = idToUV(id);
     
     uint2 block = id % 8;
-    
+    uint2 blockStart = id - block;
     
     float3 res = 0;
     for (uint u = 0; u < 8; u++) {
@@ -145,7 +145,7 @@ float3 DCT8x8(in uint2 id, in RWTexture2D<float4> sampleTex) {
                 cos((2.0f * v + 1.0f) * block.y * pi / 16.0f);
         }
     }
-    return Quantize(1, res * 0.25 * alpha(uv.x) * alpha(uv.y));
+    return Quantize(0.1, res * 0.25 * alpha(uv.x) * alpha(uv.y));
 }
 
 
