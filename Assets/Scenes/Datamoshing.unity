@@ -653,12 +653,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ad17a44fc39fb64695400492bc13f58, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dataMoshingShader: {fileID: 7200000, guid: e4028315dbce08741b41e943b928777b, type: 3}
-  baseResolution: {x: 256, y: 144}
-  resolution: 1
-  refreshProbability: 0.001
-  maxColorDifference: 0.1
-  spreadThreshold: 0.1
+  compressionShader: {fileID: 7200000, guid: e4028315dbce08741b41e943b928777b, type: 3}
+  resolution: 2
+  filterMode: 0
+  noiseAmount: 0
+  quantizationAmount: 32
 --- !u!114 &1590606506
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -1,0 +1,106 @@
+#pragma kernel DCT
+#pragma kernel IDCT
+
+RWTexture2D<float4> DCTSampler;
+RWTexture2D<float4> IDCTSampler;
+RWTexture2D<float4> CleanRender;
+
+float Time;
+
+int ResolutionX;
+int ResolutionY;
+
+float NoiseAmount;
+float QuantizationAmount;
+
+int quantizationMatrix[64];
+
+float RandomValue(in float2 coord) {
+    float3 p3 = frac(float3(coord.xyx) * .1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return frac((p3.x + p3.y) * p3.z);
+}
+
+float3 toYCbCr(float3 rgb) {
+    return mul(float3x3(
+        0.299f,       0.587f,      0.114f,
+       -0.168736f,  -0.331264f,   0.5f,
+        0.5f,        -0.418688f,  -0.081312f), rgb) +
+        float3(0.0f, 0.5f, 0.5f);
+}
+float3 toRGB(float3 ybr) {
+    return mul(float3x3(1.0f,0.0f,1.402f,1.0f,-0.344136f,-0.714136f,1.0f,1.772f,0.0f), ybr - float3(0.0f, 0.5f, 0.5f));
+}
+float3 SoftClamp(float3 value, float steepness) {
+    return 1 - exp(-steepness * value);
+}
+
+float alpha(uint x) {
+    return x != 0 ? 1.0f : 1.0 / sqrt(2);
+}
+
+float3 PreCompression(in uint2 coord, in RWTexture2D<float4> sampleTex) {
+    float noise = RandomValue(Time + (float2)coord) - 0.5f;
+    return (256.0f * ((toYCbCr(sampleTex[coord].rgb + NoiseAmount * noise) - 0.5f)));
+}
+
+float2 idToUV(uint2 id) {
+    return (float2)(id) / float2(ResolutionX, ResolutionY);
+}
+float3 Quantize(in uint quantization, in float3 dct) {
+    if(QuantizationAmount == 0)
+        return dct;
+    return round(dct / quantization) * quantization;
+}
+
+float3 DCT8x8(in uint2 id, in RWTexture2D<float4> sampleTex) {
+    const float pi = 3.14159265359;
+    const float2 uv = idToUV(id);
+    
+    uint2 block = id % 8;
+    uint2 blockStart = id - block;
+    
+    float3 res = 0;
+    for (uint u = 0; u < 8; u++) {
+        for (uint v = 0; v < 8; v++) {
+            res += PreCompression(blockStart + uint2(u,v), sampleTex) *
+                cos((2.0f * u + 1.0f) * block.x * pi / 16.0f) *
+                cos((2.0f * v + 1.0f) * block.y * pi / 16.0f);
+        }
+    }
+    return Quantize(QuantizationAmount, res * 0.25f * alpha(uv.x) * alpha(uv.y));
+}
+
+
+float3 IDCT8x8(in uint2 id, in RWTexture2D<float4> sampleTex) {
+    const float pi = 3.14159265359;
+    const float2 uv = idToUV(id);
+    
+    uint2 block = id % 8;
+    uint2 blockStart = id - block;
+    
+    float3 res = 0;
+    for(uint u = 0; u < 8; u++){
+        for(uint v = 0; v < 8; v++){
+            res += sampleTex[(blockStart + uint2(u,v))].rgb *
+                alpha(u) * alpha(v) * 
+                cos((2.0f * block.x + 1.0f) * u * pi / 16.0f) * 
+                cos((2.0f * block.y + 1.0f) * v * pi / 16.0f); 
+        }
+    }
+    return res * 0.25f;
+}
+
+[numthreads(16,16,1)]
+void DCT(uint3 id : SV_DispatchThreadID) {
+    
+    DCTSampler[id.xy] = float4(DCT8x8(id.xy, CleanRender), 1);
+}
+
+[numthreads(16,16,1)]
+void IDCT(uint3 id : SV_DispatchThreadID) {
+    IDCTSampler[id.xy] = float4(toRGB(IDCT8x8(id.xy, DCTSampler) / 256 + 0.5f), 1);
+    //IDCTSampler[id.xy] = CleanRender[id.xy];
+    //IDCTSampler[id.xy] = length(DCTSampler[id.xy]) / 64.0f;
+    //IDCTSampler[id.xy] = abs(IDCTSampler[id.xy] - CleanRender[id.xy]);
+}

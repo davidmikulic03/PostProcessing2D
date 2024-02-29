@@ -12,11 +12,11 @@ public class CameraController : MonoBehaviour
     void Update()
     {
         Vector2 input2D = GetInput();
-        Vector3 axis = Vector3.Cross(Vector3.forward, input2D);
 
         Quaternion currentRotation = transform.rotation;
-
-        transform.rotation = Quaternion.AngleAxis(panSpeed * Time.deltaTime, currentRotation * axis) * currentRotation;
+        currentRotation = Quaternion.AngleAxis(input2D.x * panSpeed * Time.deltaTime,  Vector3.up) * currentRotation;
+        currentRotation = Quaternion.AngleAxis(input2D.y * panSpeed * Time.deltaTime,  -transform.right) * currentRotation;
+        transform.rotation = currentRotation;
     }
 
     Vector2 GetInput()
