@@ -30,6 +30,6 @@ public class CameraController : MonoBehaviour
             input.y++;
         if (Input.GetKey(KeyCode.S))
             input.y--;
-        return input.normalized;
+        return -input.normalized;
     }
 }
