@@ -31,5 +31,9 @@ Material:
     m_Floats:
     - _Aspect: 1.7777778
     - _FOV: 1.0471976
+    - _MaxRotationSpeed: 0.3
+    - _MinRotationSpeed: 0.1
+    - _RotationSpeed: 2
+    - _Smoothness: 0.289
     m_Colors: []
   m_BuildTextureStacks: []

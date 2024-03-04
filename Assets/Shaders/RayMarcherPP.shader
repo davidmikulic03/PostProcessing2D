@@ -2,10 +2,11 @@ Shader "Hidden/RayMarcherPP"
 {
     Properties
     {
-        _MainTex ("Texture", 2D) = "white" {}
+        _Smoothness ("Smoothness", Range(0, 1)) = 0.25
+        _MaxRotationSpeed ("Max Rotation Speed", Range(0, 2)) = 0.5
+        _MinRotationSpeed ("Min Rotation Speed", Range(0, 2)) = 0.25
         
-        [HideInInspector] _FOV ("Field of View", Float) = 60
-        [HideInInspector] _Aspect ("Aspect Ratio", Float) = 60
+        [HideInInspector] _MainTex ("Texture", 2D) = "white" {}
     }
     SubShader
     {
@@ -21,46 +22,56 @@ Shader "Hidden/RayMarcherPP"
             #include "SignedDistancePrimitives.cginc"
             #include "Generators.cginc"
 
-            #define MAX_STEPS 100
-            #define MIN_DISTANCE 0.01
+            #define MAX_STEPS 500
+            #define MIN_DISTANCE 0.00025
             #define MAX_DISTANCE 50
+
+            float _Smoothness, _MaxRotationSpeed, _MinRotationSpeed;
             
             
             float sceneDistance(float3 position) {
-                float3 posA = position;
-                float3 posB = position;
+                const float scale = 2;
+                
+                float noise = simplex3d(scale * position) + 0.6 * simplex3d(scale * 2 *position + 1) + 0.3 * simplex3d(scale * 3 * position + 2);
 
-                pR(posA.xz, UNITY_HALF_PI * 0.5 * _Time.y);
-                const float scale = 0.8;
-                float noise = simplex3d(scale * posA) + 0.4 * simplex3d(scale * 2 *posA + 1) + 0.2 * simplex3d(scale * 3 * posA + 2);
-                return fTorus(posA, 0.4, 2) + 0.4 * noise;
-
-                pR(posB.xz, UNITY_HALF_PI * 0.5 * _Time.y);
-                float a = fTruncatedIcosahedron(posB, 1);
-                
-                
-                float b = fSphere(posB, 1);
-                a = 3 * a - 2.5 * b;
-                
+                float tori = 1.#INF;
+                //for(uint i = 0; i < 16; i++) {
+                //    float3 rand = dotHash3(i);
+                //    float3 pos = position;
+                //    
+                //    pR(pos.xz, 1749 / rand.x);
+                //    pR(pos.yz, 1497 / rand.x);
+                //    pR(pos.xy, UNITY_HALF_PI * lerp(_MinRotationSpeed, _MaxRotationSpeed, (1 + rand.y) / 2) * _Time.y);
+                //    tori = fOpUnionRound(tori, fTorus(pos, 0.05, (rand.z + 1)) + 0.04 * noise, (rand.z + 1) *_Smoothness);
+                //}
                 float t = (sin(_Time.y / 2) + 1) / 2;
-                return a;
+                //
+                float3 pos = position;
+                pR(pos.xz, 0.1 * UNITY_HALF_PI * _Time.y);
+                return fMandelBulb(1 * pos, 200, (sin(_Time.y * 0.05) + 1) * 7 + 1);
             }
             
             float4 march(in float3 origin, in float3 direction) {
-                float3 position = origin;
+                float3 colorA = 0;
+                float3 colorB = 1;
+                
                 float4 result = 0;
                 for(uint i = 0; i < MAX_STEPS; i++) {
                     float distance = sceneDistance(origin);
-                    if(distance < MIN_DISTANCE)
-                        return float4((float3)(i / (float)MAX_STEPS), 1);
+                    if(distance < MIN_DISTANCE) {
+                        float t = float4((float3)(i / (float)MAX_STEPS), 1);
+                        return float4(lerp(colorA, colorB, exp(-10 * t)), 1);
+                    }
                     else if(distance > MAX_DISTANCE)
                         continue;
                     
-                    origin += direction * distance * 0.4;
-                    result += 1 / (float)MAX_STEPS;
+                    origin += direction * distance;
+                    result += 1 * exp(1 * -distance) / MAX_STEPS;
                 }
+
+                float t = result;
                 
-                return result;
+                return 0 * float4(lerp(colorA, colorB, t), 1);
             }
 
             struct appdata
@@ -84,7 +95,6 @@ Shader "Hidden/RayMarcherPP"
             }
 
             sampler2D _MainTex;
-            float _FOV, _Aspect;
 
             float4 frag (v2f i) : SV_Target
             {

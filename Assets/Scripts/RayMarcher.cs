@@ -7,12 +7,6 @@ using UnityEngine;
 public class RayMarcher : MonoBehaviour
 {
     [SerializeField] private Material rayMarchingMaterial;
-    void OnEnable()
-    {
-        Camera camera = Camera.main;
-        rayMarchingMaterial.SetFloat("_FOV", camera.fieldOfView * Mathf.Deg2Rad);
-        rayMarchingMaterial.SetFloat("_Aspect", camera.aspect);
-    }
 
     private void OnRenderImage(RenderTexture source, RenderTexture destination)
     {

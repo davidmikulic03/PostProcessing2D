@@ -111,6 +111,27 @@ float fTruncatedIcosahedron(float3 p, float r) {
     return fGDF(p, r, 3, 18);
 }
 
+float fMandelBulb(float3 p, uint iterations, float power) {
+    float3 z = p;
+    float dr = 1;
+    float r;
+
+    for(uint i = 0; i < iterations; i++) {
+        r = length(z);
+        if(r > 2)
+            break;
+
+        float theta = acos(z.z / r) * power;
+        float phi = atan2(z.y, z.x) * power;
+        float zr = pow(r, power);
+        dr = pow(r, power - 1) * power * dr + 1;
+
+        z = zr * float3(sin(theta) * cos(phi), sin(phi) * sin(theta), cos(theta));
+        z += p;
+    }
+    return 0.5 * log(r) * r / dr;
+}
+
 //Domain Transformation
 
 float3 pM(inout float3 p, in float3 t) {
@@ -149,21 +170,6 @@ float pModPolar(inout float2 p, float repetitions) {
     // For an odd number of repetitions, fix cell index of the cell in -x direction
     // (cell index would be e.g. -5 and 5 in the two halves of the cell):
     if (abs(c) >= (repetitions/2)) c = abs(c);
-    return c;
-}
-float pMirrorPolar(inout float2 p, uint repetitions) {
-    float angle = UNITY_TWO_PI/repetitions;
-    float a = atan2(p.y, p.x) + angle/2.;
-    float r = length(p);
-    float c = floor(a/angle);
-    a = (a % angle) - angle/2.;
-    p = float2(cos(a), sin(a))*r;
-    
-    // For an odd number of repetitions, fix cell index of the cell in -x direction
-    // (cell index would be e.g. -5 and 5 in the two halves of the cell):
-    if (abs(c) >= (repetitions/2)) c = abs(c);
-    p *= (c % 2) * 2 - 1;
-    
     return c;
 }
 
