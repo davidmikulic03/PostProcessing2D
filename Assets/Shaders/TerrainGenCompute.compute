@@ -1,0 +1,24 @@
+#pragma kernel BaseGen
+
+#include "Generators.cginc"
+
+RWTexture2D<float4> HeightMap;
+
+float Scale, Dimension, Lacunarity;
+int Resolution;
+float3 Offset;
+
+[numthreads(8,8,1)]
+void BaseGen (uint3 id : SV_DispatchThreadID)
+{
+    float3 pos = Scale * id / Resolution + Offset.xzy;
+
+    float noise = 0;
+
+    for(int i = 0; i < 4; i++)
+    {
+        noise += perlin3(pow(2.0, i) * pos) / pow(1.5, i);
+    }
+    
+    HeightMap[id.xy] = noise;
+}

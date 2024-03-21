@@ -53,7 +53,20 @@ float simplex3d(float3 p) {
     return dot(d, (float4)52.0);
 }
 
-
+float perlin3(float3 p) {
+	float3 i = floor(p);
+	float3 f = frac(p);
+	f = f*f*(3.0-2.0*f);
+	
+	return 2 * lerp(lerp(lerp(	dotHash3(i+float3(0,0,0)), 
+							dotHash3(i+float3(1,0,0)),f.x),
+				   lerp(	dotHash3(i+float3(0,1,0)), 
+							dotHash3(i+float3(1,1,0)),f.x),f.y),
+			   lerp(lerp(	dotHash3(i+float3(0,0,1)), 
+							dotHash3(i+float3(1,0,1)),f.x),
+				   lerp(	dotHash3(i+float3(0,1,1)), 
+							dotHash3(i+float3(1,1,1)),f.x),f.y),f.z) - 1;
+}
 
 float3 voronoi( in float3 x )
 {

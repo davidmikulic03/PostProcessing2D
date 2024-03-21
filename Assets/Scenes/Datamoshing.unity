@@ -139,7 +139,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!212 &316842717
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -738,7 +738,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   compressionShader: {fileID: 7200000, guid: e4028315dbce08741b41e943b928777b, type: 3}
-  resolution: 2
+  resolution: 3
   filterMode: 0
   noiseAmount: 0
   quantizationAmount: 32
