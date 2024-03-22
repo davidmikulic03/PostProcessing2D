@@ -4,11 +4,12 @@ Shader "Unlit/TerrainShader"
     {
         _MainTex ("Texture", 2D) = "white" {}
         _HeightMap ("Height Map", 2D) = "black" {}
+        _NormalMap ("Normal Map", 2D) = "blue" {}
         _Height ("Height", Range(0, 16)) = 1
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" }
+        Tags {"LightMode"="ForwardBase"}
         LOD 100
 
         Pass
@@ -20,6 +21,7 @@ Shader "Unlit/TerrainShader"
             #pragma multi_compile_fog
 
             #include "UnityCG.cginc"
+            #include "UnityLightingCommon.cginc"
 
             struct appdata
             {
@@ -38,7 +40,10 @@ Shader "Unlit/TerrainShader"
             float4 _MainTex_ST;
 
             sampler2D _HeightMap;
-            float4 _Height_ST;
+            float4 _HeightMap_ST;
+
+            sampler2D _NormalMap;
+            float4 _NormalMap_ST;
 
             float _Height;
 
@@ -54,11 +59,13 @@ Shader "Unlit/TerrainShader"
 
             fixed4 frag (v2f i) : SV_Target
             {
-                // sample the texture
-                fixed4 col = tex2D(_HeightMap, i.uv);
-                // apply fog
+                float3 normal = tex2D(_NormalMap, i.uv).xyz;
+                //return float4(normal, 1);
+                fixed4 col = max(dot(normal.xzy, _WorldSpaceLightPos0.xyz), 0) * _LightColor0 + float4(ShadeSH9(half4(normal.xzy,1)), 0);
+                col *= 0.5;
+                
                 UNITY_APPLY_FOG(i.fogCoord, col);
-                return col;
+                return (col);
             }
             ENDCG
         }

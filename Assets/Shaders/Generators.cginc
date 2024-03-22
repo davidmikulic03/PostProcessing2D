@@ -8,6 +8,10 @@ float3 fracHash3(float3 c) {
     r.y = frac(512.0*j);
     return r-0.5;
 }
+float dotHash(float3 x) {
+	float output = dot(x,float3(127.1,311.7, 74.7));
+	return frac(sin(output)*43758.5453123);
+}
 float3 dotHash3( float3 x )
 {
 	x = float3( dot(x,float3(127.1,311.7, 74.7)),
@@ -53,19 +57,19 @@ float simplex3d(float3 p) {
     return dot(d, (float4)52.0);
 }
 
-float perlin3(float3 p) {
+float perlin(float3 p) {
 	float3 i = floor(p);
 	float3 f = frac(p);
 	f = f*f*(3.0-2.0*f);
 	
-	return 2 * lerp(lerp(lerp(	dotHash3(i+float3(0,0,0)), 
-							dotHash3(i+float3(1,0,0)),f.x),
-				   lerp(	dotHash3(i+float3(0,1,0)), 
-							dotHash3(i+float3(1,1,0)),f.x),f.y),
-			   lerp(lerp(	dotHash3(i+float3(0,0,1)), 
-							dotHash3(i+float3(1,0,1)),f.x),
-				   lerp(	dotHash3(i+float3(0,1,1)), 
-							dotHash3(i+float3(1,1,1)),f.x),f.y),f.z) - 1;
+	return 2 * lerp(lerp(lerp(	dotHash(i+float3(0,0,0)), 
+								dotHash(i+float3(1,0,0)),f.x),
+					lerp(		dotHash(i+float3(0,1,0)), 
+								dotHash(i+float3(1,1,0)),f.x),f.y),
+					lerp(lerp(	dotHash(i+float3(0,0,1)), 
+								dotHash(i+float3(1,0,1)),f.x),
+					lerp(		dotHash(i+float3(0,1,1)), 
+								dotHash(i+float3(1,1,1)),f.x),f.y),f.z) - 1;
 }
 
 float3 voronoi( in float3 x )
@@ -95,4 +99,35 @@ float3 voronoi( in float3 x )
 			}
 
 	return float3( sqrt( res ), abs(id) );
+}
+
+float cloud_noise(float3 x, int depth, float lacunarity, float dimension) {
+	float3 pos = x;
+	float noise = 0;
+	float amplitude = 0;
+
+	for(int i = 0; i < depth; i++) {
+		float divisor = 1 / pow(dimension, i);
+		noise += perlin(pow(lacunarity, i) * pos) * divisor;
+		amplitude += divisor;
+	}
+	
+	return noise / amplitude;
+}
+
+float heterogenous_musgrave(float3 x, int depth, float lacunarity, float dimension, float offset, float threshold) {
+	float spectralExponent = 7 - 2 * dimension;
+	float signal = 0.5 * (perlin(x) + offset);
+	float result = signal;
+	float frequency = 1.0;
+	for (int octave = depth; octave > 0; octave--) {
+		x *= lacunarity;
+		frequency *= lacunarity;
+		float amplitude = pow(frequency, -spectralExponent);
+		float weight = signal / threshold;
+		signal = weight * 0.5 * (perlin(x) + offset);
+		result += amplitude * signal;
+	}
+	
+	return result;
 }

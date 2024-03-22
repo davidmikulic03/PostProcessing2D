@@ -24,9 +24,6 @@ Shader "AffineTextureMapping"
             #include "UnityLightingCommon.cginc"
             #pragma multi_compile_fog
 
-
-            #include "UnityCG.cginc"
-
             class appdata
             {
                 float4 vertex : POSITION;

@@ -1,24 +1,44 @@
 #pragma kernel BaseGen
+#pragma kernel NormalsGen
 
 #include "Generators.cginc"
 
-RWTexture2D<float4> HeightMap;
+RWTexture2D<float> HeightMap;
+RWTexture2D<float3> NormalMap;
 
-float Scale, Dimension, Lacunarity;
-int Resolution;
+float Scale, Dimension, Lacunarity, Height, SeaLevel;
+int Resolution, Depth;
 float3 Offset;
 
-[numthreads(8,8,1)]
-void BaseGen (uint3 id : SV_DispatchThreadID)
+float3 calculate_normals(uint2 id)
 {
-    float3 pos = Scale * id / Resolution + Offset.xzy;
+    const float invDist = Resolution / 256.0;
+    const float tl  =    HeightMap[id + int2(-1, -1)]   * invDist;
+    const float l   =    HeightMap[id + int2(-1, 0)]    * invDist;
+    const float bl  =    HeightMap[id + int2(-1, 1)]    * invDist;
+    const float t   =    HeightMap[id + int2(0, -1)]    * invDist;
+    const float b   =    HeightMap[id + int2(0, 1)]     * invDist;
+    const float tr  =    HeightMap[id + int2(1, -1)]    * invDist;
+    const float r   =    HeightMap[id + int2(1, 0)]     * invDist;
+    const float br  =    HeightMap[id + int2(1, 1)]     * invDist;
 
-    float noise = 0;
-
-    for(int i = 0; i < 4; i++)
-    {
-        noise += perlin3(pow(2.0, i) * pos) / pow(1.5, i);
-    }
+    const float dx  =    (tr + 2.0 * r + br) - (tl + 2.0 * l + bl);
+    const float dy  =    1 / (Height);
+    const float dz  =    (bl + 2.0 * b + br) - (tl + 2.0 * t + tr);
     
-    HeightMap[id.xy] = noise;
+    return normalize(   float3(dx,dz,dy)    );
+}
+
+[numthreads(32,32,1)]
+void BaseGen (uint3 id : SV_DispatchThreadID) {
+    float3 pos = id / (float)Resolution + Offset;
+    float height = heterogenous_musgrave(Scale * pos, Depth, Lacunarity, Dimension, SeaLevel, 1);
+    HeightMap[id.xy] = height;
+}
+
+[numthreads(32,32,1)]
+void NormalsGen (uint3 id : SV_DispatchThreadID) {
+    //NormalMap[id.xy] = HeightMap[id.xy];
+    //return;
+    NormalMap[id.xy] = calculate_normals(id.xy);
 }
