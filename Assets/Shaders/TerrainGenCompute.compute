@@ -1,18 +1,33 @@
 #pragma kernel BaseGen
 #pragma kernel NormalsGen
+#pragma kernel FluvialFilter
 
 #include "Generators.cginc"
 
+#define MAX_ITERATIONS 100
+
 RWTexture2D<float> HeightMap;
+RWTexture2D<float> FlowMap;
 RWTexture2D<float3> NormalMap;
 
 float Scale, Dimension, Lacunarity, Height, SeaLevel;
 int Resolution, Depth;
 float3 Offset;
 
+float CraterScale, CraterLacunarity, CraterDimension, CraterSize, CraterNoise, CraterAmplitude;
+int CraterOctaves;
+
+float2 random_UV(uint2 seed) {
+    return (dotHash(float3(seed.x, 0, seed.y)) + 1) / 2;
+}
+
+uint2 UV_to_id(float2 uv) {
+    return uint2(floor(uv * Resolution - 0.5));
+}
+
 float3 calculate_normals(uint2 id)
 {
-    const float invDist = Resolution / 256.0;
+    const float invDist = Resolution / 128.0;
     const float tl  =    HeightMap[id + int2(-1, -1)]   * invDist;
     const float l   =    HeightMap[id + int2(-1, 0)]    * invDist;
     const float bl  =    HeightMap[id + int2(-1, 1)]    * invDist;
@@ -29,16 +44,58 @@ float3 calculate_normals(uint2 id)
     return normalize(   float3(dx,dz,dy)    );
 }
 
+void trace(float2 position) {
+
+    const float depositionRate = 0.03;
+    const float erosionRate = 0.04;
+    const float friction = 0.8f;
+
+    const float iterationScale = 0.04;
+    
+    float sediment = 0;
+    float2 prevPosition = position;
+    float2 velocity = 0;
+
+    for(int i = 0; i < MAX_ITERATIONS; ++i) {
+        const float3 normal = calculate_normals(position);
+        //if (normal.z == 1)
+        //    break;
+        
+        const float deposit = sediment * depositionRate * normal.z;
+        const float erosion = erosionRate * (1 - normal.z) * min(1, i * iterationScale);
+        FlowMap[UV_to_id(prevPosition)] += deposit - erosion + 1;
+        HeightMap[UV_to_id(prevPosition)] += deposit - erosion;
+        sediment += erosion - deposit;
+
+        velocity = friction * velocity + normal.xy;
+        prevPosition = position;
+        position += velocity;
+    }
+}
+
+void fluvial_erosion(uint2 id, uint droplets) {
+    for(uint i = 0; i < droplets; i++) {
+        float2 startUV = float2(id) / Resolution;
+        //FlowMap[id] = startUV;
+
+        trace(startUV);
+    }
+}
+
 [numthreads(32,32,1)]
 void BaseGen (uint3 id : SV_DispatchThreadID) {
     float3 pos = id / (float)Resolution + Offset;
-    float height = heterogenous_musgrave(Scale * pos, Depth, Lacunarity, Dimension, SeaLevel, 1);
-    HeightMap[id.xy] = height;
+    float base = heterogeneous_musgrave(Scale * pos, Depth, Lacunarity, Dimension, SeaLevel, 1);
+    float craters = octaved_craters(CraterScale * pos, CraterOctaves, CraterLacunarity, CraterDimension, CraterSize, 1, CraterNoise);
+    HeightMap[id.xy] = base + CraterAmplitude * craters;
 }
 
 [numthreads(32,32,1)]
 void NormalsGen (uint3 id : SV_DispatchThreadID) {
-    //NormalMap[id.xy] = HeightMap[id.xy];
-    //return;
     NormalMap[id.xy] = calculate_normals(id.xy);
+}
+
+[numthreads(32,32,1)]
+void FluvialFilter (uint3 id : SV_DispatchThreadID) {
+    fluvial_erosion(id.xy, 10);
 }

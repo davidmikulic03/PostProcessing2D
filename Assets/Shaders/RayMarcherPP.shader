@@ -32,7 +32,7 @@ Shader "Hidden/RayMarcherPP"
             float sceneDistance(float3 position) {
                 const float scale = 2;
                 
-                float noise = simplex3d(scale * position) + 0.6 * simplex3d(scale * 2 *position + 1) + 0.3 * simplex3d(scale * 3 * position + 2);
+                float noise = simplex3(scale * position) + 0.6 * simplex3(scale * 2 *position + 1) + 0.3 * simplex3(scale * 3 * position + 2);
 
                 float tori = 1.#INF;
                 //for(uint i = 0; i < 16; i++) {

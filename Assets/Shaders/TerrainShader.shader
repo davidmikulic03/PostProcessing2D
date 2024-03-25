@@ -4,6 +4,7 @@ Shader "Unlit/TerrainShader"
     {
         _MainTex ("Texture", 2D) = "white" {}
         _HeightMap ("Height Map", 2D) = "black" {}
+        _FlowMap ("Flow Map", 2D) = "black" {}
         _NormalMap ("Normal Map", 2D) = "blue" {}
         _Height ("Height", Range(0, 16)) = 1
     }
@@ -45,6 +46,9 @@ Shader "Unlit/TerrainShader"
             sampler2D _NormalMap;
             float4 _NormalMap_ST;
 
+            sampler2D _FlowMap;
+            float4 _FlowMap_ST;
+
             float _Height;
 
             v2f vert (appdata v)
@@ -62,6 +66,8 @@ Shader "Unlit/TerrainShader"
                 float3 normal = tex2D(_NormalMap, i.uv).xyz;
                 //return float4(normal, 1);
                 fixed4 col = max(dot(normal.xzy, _WorldSpaceLightPos0.xyz), 0) * _LightColor0 + float4(ShadeSH9(half4(normal.xzy,1)), 0);
+                float flow = tex2D(_FlowMap, i.uv).xyz;
+                //return flow;
                 col *= 0.5;
                 
                 UNITY_APPLY_FOG(i.fogCoord, col);

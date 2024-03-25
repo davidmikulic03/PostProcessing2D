@@ -1,3 +1,13 @@
+float ramp(float value, float min, float max) {
+	float invDiff = 1 / (max - min);
+	return clamp(value * invDiff - min * invDiff, 0, 1);
+}
+
+float smooth_min(float a, float b, float k) {
+	float h = clamp((b - a + k) / (2 * k), 0, 1);
+	return a * h + b * ( 1 - h ) - k * h * ( 1 - h );
+}
+
 float3 fracHash3(float3 c) {
     float j = 4096.0*sin(dot(c,float3(17.0, 59.4, 15.0)));
     float3 r;
@@ -24,7 +34,7 @@ float3 dotHash3( float3 x )
 const float F3 =  0.3333333;
 const float G3 =  0.1666667;
 
-float simplex3d(float3 p) {
+float simplex3(float3 p) {
     float3 s = floor(p + dot(p, (float3)F3));
     float3 x = p - s + dot(s, (float3)G3);
 	
@@ -115,7 +125,7 @@ float cloud_noise(float3 x, int depth, float lacunarity, float dimension) {
 	return noise / amplitude;
 }
 
-float heterogenous_musgrave(float3 x, int depth, float lacunarity, float dimension, float offset, float threshold) {
+float heterogeneous_musgrave(float3 x, int depth, float lacunarity, float dimension, float offset, float threshold) {
 	float spectralExponent = 7 - 2 * dimension;
 	float signal = 0.5 * (perlin(x) + offset);
 	float result = signal;
@@ -123,11 +133,36 @@ float heterogenous_musgrave(float3 x, int depth, float lacunarity, float dimensi
 	for (int octave = depth; octave > 0; octave--) {
 		x *= lacunarity;
 		frequency *= lacunarity;
-		float amplitude = pow(frequency, -spectralExponent);
+		float amplitude = pow(abs(frequency), -spectralExponent);
 		float weight = signal / threshold;
 		signal = weight * 0.5 * (perlin(x) + offset);
 		result += amplitude * signal;
 	}
 	
 	return result;
+}
+
+float crater(float3 x, float size, float rimWidth, float rimHeight, float noiseScale, float distortion) {
+	float3 simplex = simplex3(noiseScale * x);
+	simplex += simplex3(2 * noiseScale * x) / 2;
+	float3 crater = voronoi(x + distortion * simplex);
+
+	const float sqrRimWidth = rimWidth * rimWidth;
+	float cavity = ramp(crater.x, 0, size);
+	float craterShape = sqrRimWidth * cavity * cavity;
+	float rimShape = (rimHeight * (cavity - 1) * (cavity - 1) + sqrRimWidth) / sqrRimWidth;
+	float floorShape = (dotHash(crater.z));
+	floorShape *= floorShape;
+	
+	return (smooth_min(craterShape, rimShape, 0.1)) - 1;
+}
+
+float octaved_craters(float3 x, int depth, float lacunarity, float dimension, float craterSize, float noiseScale, float distortion) {
+	if(depth == 0)
+		return 0;
+	float height = 0;
+	for(int i = 0; i < depth; i++) {
+		height += crater(pow(abs(lacunarity), i) * x + i * 168, craterSize, 2, 8, noiseScale, distortion) / pow(abs(dimension), i);
+	}
+	return height;
 }
