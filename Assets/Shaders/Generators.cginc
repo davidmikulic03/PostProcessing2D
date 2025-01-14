@@ -8,7 +8,20 @@ float smooth_min(float a, float b, float k) {
 	return a * h + b * ( 1 - h ) - k * h * ( 1 - h );
 }
 
-float3 fracHash3(float3 c) {
+float hash11(float p) {
+	p = frac(p * .1031);
+	p *= p + 33.33;
+	p *= p + p;
+	return frac(p);
+}
+float2 hash21(float p) {
+	float3 p3 = frac((float3)p * float3(.1031, .1030, .0973));
+	p3 += dot(p3, p3.yzx + 33.33);
+	return frac((p3.xx+p3.yz)*p3.zy);
+
+}
+
+float3 frac_hash33(float3 c) {
     float j = 4096.0*sin(dot(c,float3(17.0, 59.4, 15.0)));
     float3 r;
     r.z = frac(512.0*j);
@@ -18,11 +31,11 @@ float3 fracHash3(float3 c) {
     r.y = frac(512.0*j);
     return r-0.5;
 }
-float dotHash(float3 x) {
+float dot_hash13(float3 x) {
 	float output = dot(x,float3(127.1,311.7, 74.7));
 	return frac(sin(output)*43758.5453123);
 }
-float3 dotHash3( float3 x )
+float3 dot_hash33( float3 x )
 {
 	x = float3( dot(x,float3(127.1,311.7, 74.7)),
 			  dot(x,float3(269.5,183.3,246.1)),
@@ -34,7 +47,7 @@ float3 dotHash3( float3 x )
 const float F3 =  0.3333333;
 const float G3 =  0.1666667;
 
-float simplex3(float3 p) {
+float simplex13(float3 p) {
     float3 s = floor(p + dot(p, (float3)F3));
     float3 x = p - s + dot(s, (float3)G3);
 	
@@ -55,10 +68,10 @@ float simplex3(float3 p) {
 	
     w = max(0.6 - w, 0.0);
 	
-    d.x = dot(fracHash3(s), x);
-    d.y = dot(fracHash3(s + i1), x1);
-    d.z = dot(fracHash3(s + i2), x2);
-    d.w = dot(fracHash3(s + 1.0), x3);
+    d.x = dot(frac_hash33(s), x);
+    d.y = dot(frac_hash33(s + i1), x1);
+    d.z = dot(frac_hash33(s + i2), x2);
+    d.w = dot(frac_hash33(s + 1.0), x3);
 	
     w *= w;
     w *= w;
@@ -67,19 +80,19 @@ float simplex3(float3 p) {
     return dot(d, (float4)52.0);
 }
 
-float perlin(float3 p) {
+float perlin13(float3 p) {
 	float3 i = floor(p);
 	float3 f = frac(p);
 	f = f*f*(3.0-2.0*f);
 	
-	return 2 * lerp(lerp(lerp(	dotHash(i+float3(0,0,0)), 
-								dotHash(i+float3(1,0,0)),f.x),
-					lerp(		dotHash(i+float3(0,1,0)), 
-								dotHash(i+float3(1,1,0)),f.x),f.y),
-					lerp(lerp(	dotHash(i+float3(0,0,1)), 
-								dotHash(i+float3(1,0,1)),f.x),
-					lerp(		dotHash(i+float3(0,1,1)), 
-								dotHash(i+float3(1,1,1)),f.x),f.y),f.z) - 1;
+	return 2 * lerp(lerp(lerp(	dot_hash13(i+float3(0,0,0)), 
+								dot_hash13(i+float3(1,0,0)),f.x),
+					lerp(		dot_hash13(i+float3(0,1,0)), 
+								dot_hash13(i+float3(1,1,0)),f.x),f.y),
+					lerp(lerp(	dot_hash13(i+float3(0,0,1)), 
+								dot_hash13(i+float3(1,0,1)),f.x),
+					lerp(		dot_hash13(i+float3(0,1,1)), 
+								dot_hash13(i+float3(1,1,1)),f.x),f.y),f.z) - 1;
 }
 
 float3 voronoi( in float3 x )
@@ -94,7 +107,7 @@ float3 voronoi( in float3 x )
 			for( int i=-1; i<=1; i++ )
 			{
 				float3 b = float3( float(i), float(j), float(k) );
-				float3 r = float3( b ) - f + dotHash3( p + b );
+				float3 r = float3( b ) - f + dot_hash33( p + b );
 				float d = dot( r, r );
 
 				if( d < res.x )
@@ -111,23 +124,23 @@ float3 voronoi( in float3 x )
 	return float3( sqrt( res ), abs(id) );
 }
 
-float cloud_noise(float3 x, int depth, float lacunarity, float dimension) {
+float cloud_noise13(float3 x, int depth, float lacunarity, float dimension) {
 	float3 pos = x;
 	float noise = 0;
 	float amplitude = 0;
 
 	for(int i = 0; i < depth; i++) {
 		float divisor = 1 / pow(dimension, i);
-		noise += perlin(pow(lacunarity, i) * pos) * divisor;
+		noise += perlin13(pow(lacunarity, i) * pos) * divisor;
 		amplitude += divisor;
 	}
 	
 	return noise / amplitude;
 }
 
-float heterogeneous_musgrave(float3 x, int depth, float lacunarity, float dimension, float offset, float threshold) {
+float heterogeneous_musgrave13(float3 x, int depth, float lacunarity, float dimension, float offset, float threshold) {
 	float spectralExponent = 7 - 2 * dimension;
-	float signal = 0.5 * (perlin(x) + offset);
+	float signal = 0.5 * (perlin13(x) + offset);
 	float result = signal;
 	float frequency = 1.0;
 	for (int octave = depth; octave > 0; octave--) {
@@ -135,34 +148,34 @@ float heterogeneous_musgrave(float3 x, int depth, float lacunarity, float dimens
 		frequency *= lacunarity;
 		float amplitude = pow(abs(frequency), -spectralExponent);
 		float weight = signal / threshold;
-		signal = weight * 0.5 * (perlin(x) + offset);
+		signal = weight * 0.5 * (perlin13(x) + offset);
 		result += amplitude * signal;
 	}
 	
 	return result;
 }
 
-float crater(float3 x, float size, float rimWidth, float rimHeight, float noiseScale, float distortion) {
-	float3 simplex = simplex3(noiseScale * x);
-	simplex += simplex3(2 * noiseScale * x) / 2;
+float crater13(float3 x, float size, float rimWidth, float rimHeight, float noiseScale, float distortion) {
+	float3 simplex = simplex13(noiseScale * x);
+	simplex += simplex13(2 * noiseScale * x) / 2;
 	float3 crater = voronoi(x + distortion * simplex);
 
 	const float sqrRimWidth = rimWidth * rimWidth;
 	float cavity = ramp(crater.x, 0, size);
 	float craterShape = sqrRimWidth * cavity * cavity;
 	float rimShape = (rimHeight * (cavity - 1) * (cavity - 1) + sqrRimWidth) / sqrRimWidth;
-	float floorShape = (dotHash(crater.z));
+	float floorShape = (dot_hash13(crater.z));
 	floorShape *= floorShape;
 	
 	return (smooth_min(craterShape, rimShape, 0.1)) - 1;
 }
 
-float octaved_craters(float3 x, int depth, float lacunarity, float dimension, float craterSize, float noiseScale, float distortion) {
+float octaved_craters13(float3 x, int depth, float lacunarity, float dimension, float craterSize, float noiseScale, float distortion) {
 	if(depth == 0)
 		return 0;
 	float height = 0;
 	for(int i = 0; i < depth; i++) {
-		height += crater(pow(abs(lacunarity), i) * x + i * 168, craterSize, 2, 8, noiseScale, distortion) / pow(abs(dimension), i);
+		height += crater13(pow(abs(lacunarity), i) * x + i * 168, craterSize, 2, 8, noiseScale, distortion) / pow(abs(dimension), i);
 	}
 	return height;
 }

@@ -64,7 +64,7 @@ public class TerrainGen : MonoBehaviour
         computeShader.SetFloat("Lacunarity", lacunarity);
         computeShader.SetFloat("SeaLevel", seaLevel);
         computeShader.SetVector("Offset", offset);
-        computeShader.SetInt("Resolution", resolution);
+        computeShader.SetInt("Resolution", resolution + 1);
         computeShader.SetFloat("Height", height);
         
         computeShader.SetFloat("CraterScale", craterScale);
@@ -94,7 +94,7 @@ public class TerrainGen : MonoBehaviour
                 heightMap.Release();
             }
 
-            heightMap = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.ARGBFloat);
+            heightMap = new RenderTexture(resolution + 1, resolution + 1, 0, RenderTextureFormat.ARGBFloat);
             heightMap.enableRandomWrite = true;
             
             normalMap = new RenderTexture(heightMap);
@@ -112,12 +112,14 @@ public class TerrainGen : MonoBehaviour
         
         baseKernel = computeShader.FindKernel("BaseGen");
         normalsKernel = computeShader.FindKernel("NormalsGen");
+
+        int newResolution = resolution + 1;
         
         InitializeComputeShader();
         computeShader.GetKernelThreadGroupSizes(baseKernel, out uint x, out uint y, out _);
         
-        computeShader.Dispatch(baseKernel, resolution / (int)x, resolution / (int)y, 1);
-        computeShader.Dispatch(normalsKernel, resolution / (int)x, resolution / (int)y, 1);
+        computeShader.Dispatch(baseKernel, newResolution / (int)x, newResolution / (int)y, 1);
+        computeShader.Dispatch(normalsKernel, newResolution / (int)x, newResolution / (int)y, 1);
 
         if (!meshRendererComp)
             meshRendererComp = GetComponent<MeshRenderer>();
@@ -145,10 +147,12 @@ public class TerrainGen : MonoBehaviour
 
         if (!meshRendererComp)
             meshRendererComp = GetComponent<MeshRenderer>();
+        
         Material material = new Material(shader);
         material.SetTexture("_HeightMap", heightMap);
         material.SetTexture("_NormalMap", normalMap);
         material.SetTexture("_FlowMap", flowMap);
+        material.SetFloat("_Height", height);
 
         meshRendererComp.material = material;
     }

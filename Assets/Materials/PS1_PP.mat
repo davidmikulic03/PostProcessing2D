@@ -60,7 +60,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints:
-    - _NumColors: 8
+    - _NumColors: 16
     - _PixelDensity: 480
     m_Floats:
     - _BumpScale: 1
@@ -75,7 +75,7 @@ Material:
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
-    - _SharpeningSize: 0.0000322
+    - _SharpeningSize: 0.0000316
     - _SharpeningSizeMax: 0.0008
     - _SharpeningSizeMin: 0.000032
     - _SmoothnessTextureChannel: 0

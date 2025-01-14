@@ -7,7 +7,7 @@
 #define MAX_ITERATIONS 100
 
 RWTexture2D<float> HeightMap;
-RWTexture2D<float> FlowMap;
+RWTexture2D<float2> FlowMap;
 RWTexture2D<float3> NormalMap;
 
 float Scale, Dimension, Lacunarity, Height, SeaLevel;
@@ -18,7 +18,10 @@ float CraterScale, CraterLacunarity, CraterDimension, CraterSize, CraterNoise, C
 int CraterOctaves;
 
 float2 random_UV(uint2 seed) {
-    return (dotHash(float3(seed.x, 0, seed.y)) + 1) / 2;
+    return (dot_hash13(float3(seed.x, 0, seed.y)) + 1) / 2;
+}
+float2 random_UV(uint seed) {
+    return hash21((float)seed);
 }
 
 uint2 UV_to_id(float2 uv) {
@@ -38,10 +41,10 @@ float3 calculate_normals(uint2 id)
     const float br  =    HeightMap[id + int2(1, 1)]     * invDist;
 
     const float dx  =    (tr + 2.0 * r + br) - (tl + 2.0 * l + bl);
-    const float dy  =    1 / (Height);
-    const float dz  =    (bl + 2.0 * b + br) - (tl + 2.0 * t + tr);
+    const float dy  =    (bl + 2.0 * b + br) - (tl + 2.0 * t + tr);
+    const float dz  =    1 / (Height);
     
-    return normalize(   float3(dx,dz,dy)    );
+    return normalize(   float3(dx,dy,dz)    );
 }
 
 void trace(float2 position) {
@@ -56,10 +59,11 @@ void trace(float2 position) {
     float2 prevPosition = position;
     float2 velocity = 0;
 
-    for(int i = 0; i < MAX_ITERATIONS; ++i) {
+    for(int i = 0; i < MAX_ITERATIONS; i++) {
         const float3 normal = calculate_normals(position);
-        //if (normal.z == 1)
-        //    break;
+        
+        if (abs(normal.z) >= 0.9999)
+            break;
         
         const float deposit = sediment * depositionRate * normal.z;
         const float erosion = erosionRate * (1 - normal.z) * min(1, i * iterationScale);
@@ -71,13 +75,13 @@ void trace(float2 position) {
         prevPosition = position;
         position += velocity;
     }
+    HeightMap[UV_to_id(prevPosition)] += sediment;
 }
 
 void fluvial_erosion(uint2 id, uint droplets) {
+    
     for(uint i = 0; i < droplets; i++) {
-        float2 startUV = float2(id) / Resolution;
-        //FlowMap[id] = startUV;
-
+        float2 startUV = hash21(id * (float)i * 0.1);
         trace(startUV);
     }
 }
@@ -85,8 +89,8 @@ void fluvial_erosion(uint2 id, uint droplets) {
 [numthreads(32,32,1)]
 void BaseGen (uint3 id : SV_DispatchThreadID) {
     float3 pos = id / (float)Resolution + Offset;
-    float base = heterogeneous_musgrave(Scale * pos, Depth, Lacunarity, Dimension, SeaLevel, 1);
-    float craters = octaved_craters(CraterScale * pos, CraterOctaves, CraterLacunarity, CraterDimension, CraterSize, 1, CraterNoise);
+    float base = heterogeneous_musgrave13(Scale * pos, Depth, Lacunarity, Dimension, SeaLevel, 1);
+    float craters = octaved_craters13(CraterScale * pos, CraterOctaves, CraterLacunarity, CraterDimension, CraterSize, 1, CraterNoise);
     HeightMap[id.xy] = base + CraterAmplitude * craters;
 }
 
@@ -95,7 +99,7 @@ void NormalsGen (uint3 id : SV_DispatchThreadID) {
     NormalMap[id.xy] = calculate_normals(id.xy);
 }
 
-[numthreads(32,32,1)]
+[numthreads(512,1,1)]
 void FluvialFilter (uint3 id : SV_DispatchThreadID) {
-    fluvial_erosion(id.xy, 10);
+    fluvial_erosion(id.x, 10);
 }

@@ -60,22 +60,22 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints:
-    - _Steps: 3
+    - _Steps: 5
     m_Floats:
     - _BumpScale: 1
-    - _CosineFrequency: 1.52
-    - _CutOff: 0.362
+    - _CosineFrequency: 1.5
+    - _CutOff: 0.185
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
     - _DistanceBias: -0.188
     - _DstBlend: 0
     - _Fraction: 1.05
-    - _FractionOffset: 30.2
-    - _Fractions: 1.5
+    - _FractionOffset: 28.4
+    - _Fractions: 2.18
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
-    - _InnerDiameter: -0.23
+    - _InnerDiameter: -0.11
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1

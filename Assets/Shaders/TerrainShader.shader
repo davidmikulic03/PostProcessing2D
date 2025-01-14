@@ -23,6 +23,7 @@ Shader "Unlit/TerrainShader"
 
             #include "UnityCG.cginc"
             #include "UnityLightingCommon.cginc"
+            #include "Generators.cginc"
 
             struct appdata
             {
@@ -65,13 +66,15 @@ Shader "Unlit/TerrainShader"
             {
                 float3 normal = tex2D(_NormalMap, i.uv).xyz;
                 //return float4(normal, 1);
-                fixed4 col = max(dot(normal.xzy, _WorldSpaceLightPos0.xyz), 0) * _LightColor0 + float4(ShadeSH9(half4(normal.xzy,1)), 0);
+                fixed4 shadow = max(dot(normal.xzy, _WorldSpaceLightPos0.xyz), 0) * _LightColor0 + float4(ShadeSH9(half4(normal.xzy,1)), 0);
+                fixed4 col = normal.z;
+                col = 0.5 * (exp(-1 * col * col)) + 0.25;
                 float flow = tex2D(_FlowMap, i.uv).xyz;
-                //return flow;
-                col *= 0.5;
+                //return exp(-flow);
+                shadow *= col;
                 
                 UNITY_APPLY_FOG(i.fogCoord, col);
-                return (col);
+                return (shadow);
             }
             ENDCG
         }
